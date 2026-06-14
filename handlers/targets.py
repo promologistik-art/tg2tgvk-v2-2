@@ -13,30 +13,6 @@ from .constants import AWAITING_VK_TOKEN, AWAITING_VK_GROUP, CURRENT_PROJECT_KEY
 logger = logging.getLogger(__name__)
 
 
-async def _exchange_token(short_token: str) -> str:
-    """Обменивает краткосрочный пользовательский токен на вечный."""
-    url = "https://oauth.vk.com/access_token"
-    params = {
-        "client_id": Config.VK_CLIENT_ID,
-        "client_secret": Config.VK_CLIENT_SECRET,
-        "v": Config.VK_API_VERSION,
-        "access_token": short_token,
-    }
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, params=params) as resp:
-                result = await resp.json()
-                logger.info(f"Token exchange result: expires_in={result.get('expires_in', '?')}")
-                if "access_token" in result:
-                    return result["access_token"]
-                else:
-                    logger.error(f"Token exchange failed: {result}")
-                    return short_token
-    except Exception as e:
-        logger.error(f"Token exchange error: {e}")
-        return short_token
-
-
 # ============ ДОБАВЛЕНИЕ VK-ЦЕЛИ ============
 
 async def add_target_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -132,19 +108,16 @@ async def _show_token_prompt(target, context: ContextTypes.DEFAULT_TYPE, project
     context.user_data['temp_project_id'] = project.id
     context.user_data['temp_project_name'] = project.name
     
-    vk_url = Config().VK_AUTH_URL
-    logger.info(f"DEBUG VK_AUTH_URL = {vk_url}")
-    
     text = (
         f"📤 <b>Добавление VK-цели в «{project.name}»</b>\n\n"
         f"<b>🔑 Шаг 1 из 2: Получите VK токен</b>\n\n"
         f"1. Перейдите по ссылке и нажмите «Разрешить»:\n"
-        f"<a href='{vk_url}'>🔗 Получить токен VK</a>\n\n"
+        f"<a href='{Config().VK_AUTH_URL}'>🔗 Получить токен VK</a>\n\n"
         f"2. После авторизации вы попадёте на страницу blank.html\n"
         f"3. Скопируйте <b>всю строку</b> из адресной строки браузера\n"
         f"   (начинается с <code>vk1.a.</code>...)\n"
         f"4. Отправьте скопированный токен сюда\n\n"
-        f"<i>Бот обменяет его на вечный токен автоматически.</i>\n\n"
+        f"<i>Токен живёт 24 часа. Бот напомнит обновить.</i>\n\n"
         f"/cancel — отмена"
     )
     
@@ -159,7 +132,14 @@ async def _show_token_prompt(target, context: ContextTypes.DEFAULT_TYPE, project
 async def add_target_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
     token = update.message.text.strip()
     
-    if not token.startswith("vk1.a.") and len(token) < 50:
+    # Если прислали полную ссылку — вытаскиваем токен
+    if "access_token=" in token:
+        match = re.search(r'access_token=([a-zA-Z0-9_.]+)', token)
+        if match:
+            token = match.group(1)
+    
+    # Проверка формата токена
+    if not token.startswith("vk1.a.") and not token.startswith("vk1."):
         await update.message.reply_text(
             "❌ Не похоже на VK токен. Токен должен начинаться с <code>vk1.a.</code>\n\n"
             "Скопируйте всю строку из адресной строки браузера после авторизации.\n"
@@ -168,43 +148,11 @@ async def add_target_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return AWAITING_VK_TOKEN
     
-    msg = await update.message.reply_text("🔄 Обмениваю токен на вечный...")
-    
-    eternal_token = await _exchange_token(token)
-    
-    await msg.delete()
-    
-    if not eternal_token:
-        await update.message.reply_text(
-            "❌ Не удалось обменять токен на вечный.\n"
-            "Попробуйте получить новый токен по ссылке и отправьте его.\n"
-            "/cancel — отмена"
-        )
-        return AWAITING_VK_TOKEN
-    
-    try:
-        async with aiohttp.ClientSession() as session:
-            params = {"access_token": eternal_token, "v": Config.VK_API_VERSION}
-            async with session.get("https://api.vk.com/method/users.get", params=params) as resp:
-                result = await resp.json()
-    except Exception as e:
-        logger.error(f"VK token check failed: {e}")
-        await update.message.reply_text(
-            "❌ Не удалось проверить токен. Попробуйте снова.\n/cancel — отмена"
-        )
-        return AWAITING_VK_TOKEN
-    
-    if "error" in result:
-        await update.message.reply_text(
-            f"❌ Токен недействителен: {result['error'].get('error_msg', 'ошибка')}\n"
-            "Попробуйте получить новый токен.\n/cancel — отмена"
-        )
-        return AWAITING_VK_TOKEN
-    
-    context.user_data['temp_vk_token'] = eternal_token
+    # Сохраняем токен как есть, без проверки users.get (избегаем ошибки IP)
+    context.user_data['temp_vk_token'] = token
     
     await update.message.reply_text(
-        f"✅ Токен получен и обменян на вечный!\n\n"
+        f"✅ Токен принят!\n\n"
         f"<b>🔗 Шаг 2 из 2: Отправьте ссылку на группу VK</b>\n\n"
         f"Например:\n"
         f"• <code>https://vk.com/club123456</code>\n"
