@@ -89,6 +89,23 @@ async def main():
     await init_db()
     logger.info("Database initialized")
     
+    # === Проверка VK API ===
+    logger.info("🔍 Testing VK API upload methods...")
+    try:
+        from vk_api import VkApi
+        from vk_api.upload import VkUpload
+        vk = VkApi(token='vk1.a.ZilJECLNfvimKXvsOWb5DXfHqxq-Mnk24kRXUhxwITFBYKLDA3KF1JKQwfWcj4LDHmyhtLceRJBZKoWGzoniKuNCqt1e9t-CT0F_VwJW0xhDlTBeB_Ogd7NualOQXzuzdpWw1arcPSK6skjvbsT1m3DKi1Xc25a5All7quWzA-TRSdZAgb4dFpPf3KD6BbgUjoQg8y9C_zXNC0hpQ43fgg').get_api()
+        uploader = VkUpload(vk)
+        methods = [m for m in dir(uploader) if not m.startswith('_')]
+        logger.info(f"📦 VkUpload methods: {methods}")
+        video_methods = [m for m in methods if 'video' in m.lower()]
+        if video_methods:
+            logger.info(f"✅ Video methods found: {video_methods}")
+        else:
+            logger.warning("⚠️ No video methods in VkUpload")
+    except Exception as e:
+        logger.warning(f"⚠️ VK API test failed: {e}")
+    
     # === Регистрируем клона в общей таблице workers ===
     await register_self()
     
