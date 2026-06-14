@@ -132,17 +132,14 @@ async def _show_token_prompt(target, context: ContextTypes.DEFAULT_TYPE, project
     context.user_data['temp_project_id'] = project.id
     context.user_data['temp_project_name'] = project.name
     
-    # ОТЛАДКА
-    vk_url = Config.VK_AUTH_URL
+    vk_url = Config().VK_AUTH_URL
     logger.info(f"DEBUG VK_AUTH_URL = {vk_url}")
-    logger.info(f"DEBUG VK_CLIENT_ID = {Config.VK_CLIENT_ID}")
-    logger.info(f"DEBUG VK_CLIENT_SECRET set = {bool(Config.VK_CLIENT_SECRET)}")
     
     text = (
         f"📤 <b>Добавление VK-цели в «{project.name}»</b>\n\n"
         f"<b>🔑 Шаг 1 из 2: Получите VK токен</b>\n\n"
         f"1. Перейдите по ссылке и нажмите «Разрешить»:\n"
-        f"<a href='{Config.VK_AUTH_URL}'>🔗 Получить токен VK</a>\n\n"
+        f"<a href='{vk_url}'>🔗 Получить токен VK</a>\n\n"
         f"2. После авторизации вы попадёте на страницу blank.html\n"
         f"3. Скопируйте <b>всю строку</b> из адресной строки браузера\n"
         f"   (начинается с <code>vk1.a.</code>...)\n"
