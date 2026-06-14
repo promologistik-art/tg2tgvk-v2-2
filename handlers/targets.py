@@ -31,7 +31,6 @@ async def _exchange_token(short_token: str) -> str:
                     return result["access_token"]
                 else:
                     logger.error(f"Token exchange failed: {result}")
-                    # Если обмен не сработал — пробуем вернуть исходный
                     return short_token
     except Exception as e:
         logger.error(f"Token exchange error: {e}")
@@ -133,6 +132,12 @@ async def _show_token_prompt(target, context: ContextTypes.DEFAULT_TYPE, project
     context.user_data['temp_project_id'] = project.id
     context.user_data['temp_project_name'] = project.name
     
+    # ОТЛАДКА
+    vk_url = Config.VK_AUTH_URL
+    logger.info(f"DEBUG VK_AUTH_URL = {vk_url}")
+    logger.info(f"DEBUG VK_CLIENT_ID = {Config.VK_CLIENT_ID}")
+    logger.info(f"DEBUG VK_CLIENT_SECRET set = {bool(Config.VK_CLIENT_SECRET)}")
+    
     text = (
         f"📤 <b>Добавление VK-цели в «{project.name}»</b>\n\n"
         f"<b>🔑 Шаг 1 из 2: Получите VK токен</b>\n\n"
@@ -166,7 +171,6 @@ async def add_target_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return AWAITING_VK_TOKEN
     
-    # Обмениваем краткосрочный токен на вечный
     msg = await update.message.reply_text("🔄 Обмениваю токен на вечный...")
     
     eternal_token = await _exchange_token(token)
@@ -181,7 +185,6 @@ async def add_target_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return AWAITING_VK_TOKEN
     
-    # Проверяем вечный токен
     try:
         async with aiohttp.ClientSession() as session:
             params = {"access_token": eternal_token, "v": Config.VK_API_VERSION}
