@@ -8,7 +8,6 @@ Version: 1.0.0 — VK Poster
 import asyncio
 import logging
 import sys
-import glob
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     MessageHandler, filters, ConversationHandler
@@ -89,44 +88,6 @@ async def safe_set_signature_input(update, context):
 async def main():
     await init_db()
     logger.info("Database initialized")
-    
-    # === Проверка VK API ===
-    logger.info("🔍 Testing VK API upload methods...")
-    try:
-        from vk_api import VkApi
-        from vk_api.upload import VkUpload
-        TOKEN = 'vk1.a.ZilJECLNfvimKXvsOWb5DXfHqxq-Mnk24kRXUhxwITFBYKLDA3KF1JKQwfWcj4LDHmyhtLceRJBZKoWGzoniKuNCqt1e9t-CT0F_VwJW0xhDlTBeB_Ogd7NualOQXzuzdpWw1arcPSK6skjvbsT1m3DKi1Xc25a5All7quWzA-TRSdZAgb4dFpPf3KD6BbgUjoQg8y9C_zXNC0hpQ43fgg'
-        vk = VkApi(token=TOKEN).get_api()
-        uploader = VkUpload(vk)
-        methods = [m for m in dir(uploader) if not m.startswith('_')]
-        logger.info(f"📦 VkUpload methods: {methods}")
-        video_methods = [m for m in methods if 'video' in m.lower()]
-        if video_methods:
-            logger.info(f"✅ Video methods found: {video_methods}")
-            test_videos = glob.glob('/app/data/temp/*.mp4')
-            if test_videos:
-                test_video = test_videos[0]
-                # Тест 1: с group_id
-                logger.info(f"🎬 Test 1: upload with group_id")
-                try:
-                    result = uploader.video(video_file=test_video, group_id=106355291)
-                    logger.info(f"✅ Test 1 result: {result}")
-                except Exception as e:
-                    logger.error(f"❌ Test 1 failed: {e}")
-                
-                # Тест 2: без group_id
-                logger.info(f"🎬 Test 2: upload without group_id")
-                try:
-                    result = uploader.video(video_file=test_video)
-                    logger.info(f"✅ Test 2 result: {result}")
-                except Exception as e:
-                    logger.error(f"❌ Test 2 failed: {e}")
-            else:
-                logger.warning("⚠️ No test video found in /app/data/temp/")
-        else:
-            logger.warning("⚠️ No video methods in VkUpload")
-    except Exception as e:
-        logger.warning(f"⚠️ VK API test failed: {e}")
     
     # === Регистрируем клона в общей таблице workers ===
     await register_self()

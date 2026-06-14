@@ -66,7 +66,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     welcome = f"👋 Привет, {user.first_name or 'пользователь'}!\n\n"
     welcome += "🤖 TG2VK — парсинг и автопостинг\n\n"
-    welcome += "Я нахожу лучшие посты в Telegram-каналах и публикую их в ваши VK-группы.\n\n"
+    welcome += "Я нахожу лучшие посты в Telegram-каналах и публикую их в ваши VK-группы.\n"
+    welcome += "⚠️ <b>Видео не переносятся</b> — только текст и фото (ограничение VK API).\n\n"
     
     if db_user.is_admin:
         welcome += "👑 <b>Режим администратора</b>\n\n"

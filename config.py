@@ -42,20 +42,7 @@ class Config:
     BOT_READ_TIMEOUT = int(os.getenv("BOT_READ_TIMEOUT", "60"))
     BOT_WRITE_TIMEOUT = int(os.getenv("BOT_WRITE_TIMEOUT", "60"))
 
-    VK_CLIENT_ID = int(os.getenv("VK_CLIENT_ID", "0"))
-    VK_CLIENT_SECRET = os.getenv("VK_CLIENT_SECRET", "")
     VK_API_VERSION = "5.199"
-    
-    @property
-    def VK_AUTH_URL(self) -> str:
-        return (
-            "https://oauth.vk.com/authorize"
-            f"?client_id={self.VK_CLIENT_ID}"
-            "&redirect_uri=https://oauth.vk.com/blank.html"
-            "&scope=wall,photos,video,groups"
-            "&response_type=token"
-            "&v=5.199"
-        )
 
     @classmethod
     def validate(cls):
@@ -63,9 +50,5 @@ class Config:
             raise ValueError("BOT_TOKEN is required")
         if not cls.DATABASE_URL:
             raise ValueError("DATABASE_URL is required")
-        if cls.VK_CLIENT_ID == 0:
-            raise ValueError("VK_CLIENT_ID is required")
-        if not cls.VK_CLIENT_SECRET:
-            raise ValueError("VK_CLIENT_SECRET is required")
 
 Config.validate()

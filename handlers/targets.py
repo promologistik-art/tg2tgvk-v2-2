@@ -110,21 +110,26 @@ async def _show_token_prompt(target, context: ContextTypes.DEFAULT_TYPE, project
     
     text = (
         f"📤 <b>Добавление VK-цели в «{project.name}»</b>\n\n"
-        f"<b>🔑 Шаг 1 из 2: Получите VK токен</b>\n\n"
-        f"1. Перейдите по ссылке и нажмите «Разрешить»:\n"
-        f"<a href='{Config().VK_AUTH_URL}'>🔗 Получить токен VK</a>\n\n"
-        f"2. После авторизации вы попадёте на страницу blank.html\n"
-        f"3. Скопируйте <b>всю строку</b> из адресной строки браузера\n"
-        f"   (начинается с <code>vk1.a.</code>...)\n"
-        f"4. Отправьте скопированный токен сюда\n\n"
-        f"<i>Токен живёт 24 часа. Бот напомнит обновить.</i>\n\n"
+        f"<b>🔑 Шаг 1 из 2: Получите токен группы VK</b>\n\n"
+        f"1. Зайдите в свою группу VK → «Управление» → «Дополнительно» → «Работа с API»\n"
+        f"2. Нажмите «Создать ключ»\n"
+        f"3. Отметьте права:\n"
+        f"   ✅ Управление сообществом\n"
+        f"   ✅ Фотографии сообщества\n"
+        f"   ✅ Стена сообщества\n"
+        f"4. Нажмите «Создать» и скопируйте токен\n"
+        f"5. Отправьте скопированный токен сюда\n\n"
+        f"⚠️ Токен начинается с <code>vk1.a.</code> и выглядит как длинная строка букв и цифр.\n"
+        f"<i>Токен группы не истекает — вы вводите его один раз.</i>\n\n"
+        f"⚠️ Видео из Telegram не переносятся (ограничение VK API).\n"
+        f"Бот публикует текст и фото.\n\n"
         f"/cancel — отмена"
     )
     
     if hasattr(target, 'edit_message_text'):
-        await target.edit_message_text(text, parse_mode="HTML", disable_web_page_preview=True)
+        await target.edit_message_text(text, parse_mode="HTML")
     else:
-        await target.message.reply_text(text, parse_mode="HTML", disable_web_page_preview=True)
+        await target.message.reply_text(text, parse_mode="HTML")
     
     return AWAITING_VK_TOKEN
 
@@ -132,23 +137,16 @@ async def _show_token_prompt(target, context: ContextTypes.DEFAULT_TYPE, project
 async def add_target_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
     token = update.message.text.strip()
     
-    # Если прислали полную ссылку — вытаскиваем токен
-    if "access_token=" in token:
-        match = re.search(r'access_token=([a-zA-Z0-9_.]+)', token)
-        if match:
-            token = match.group(1)
-    
-    # Проверка формата токена
     if not token.startswith("vk1.a.") and not token.startswith("vk1."):
         await update.message.reply_text(
-            "❌ Не похоже на VK токен. Токен должен начинаться с <code>vk1.a.</code>\n\n"
-            "Скопируйте всю строку из адресной строки браузера после авторизации.\n"
+            "❌ Не похоже на токен группы VK. Токен должен начинаться с <code>vk1.a.</code>\n\n"
+            "Скопируйте токен из настроек группы:\n"
+            "«Управление» → «Дополнительно» → «Работа с API» → «Создать ключ»\n"
             "/cancel — отмена",
             parse_mode="HTML"
         )
         return AWAITING_VK_TOKEN
     
-    # Сохраняем токен как есть, без проверки users.get (избегаем ошибки IP)
     context.user_data['temp_vk_token'] = token
     
     await update.message.reply_text(
@@ -204,7 +202,6 @@ async def add_target_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     project_id = context.user_data.get('temp_project_id')
     project_name = context.user_data.get('temp_project_name')
     
-    # Если есть screen_name — пробуем получить group_id
     if not group_id and screen_name:
         try:
             async with aiohttp.ClientSession() as session:
