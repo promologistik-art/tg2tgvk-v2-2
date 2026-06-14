@@ -103,16 +103,24 @@ async def main():
         video_methods = [m for m in methods if 'video' in m.lower()]
         if video_methods:
             logger.info(f"✅ Video methods found: {video_methods}")
-            # Пробуем загрузить тестовое видео
             test_videos = glob.glob('/app/data/temp/*.mp4')
             if test_videos:
                 test_video = test_videos[0]
-                logger.info(f"🎬 Testing video upload with {test_video}")
+                # Тест 1: с group_id
+                logger.info(f"🎬 Test 1: upload with group_id")
                 try:
                     result = uploader.video(video_file=test_video, group_id=106355291)
-                    logger.info(f"✅ Video upload result: {result}")
+                    logger.info(f"✅ Test 1 result: {result}")
                 except Exception as e:
-                    logger.error(f"❌ Video upload failed: {e}")
+                    logger.error(f"❌ Test 1 failed: {e}")
+                
+                # Тест 2: без group_id
+                logger.info(f"🎬 Test 2: upload without group_id")
+                try:
+                    result = uploader.video(video_file=test_video)
+                    logger.info(f"✅ Test 2 result: {result}")
+                except Exception as e:
+                    logger.error(f"❌ Test 2 failed: {e}")
             else:
                 logger.warning("⚠️ No test video found in /app/data/temp/")
         else:
