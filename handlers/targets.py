@@ -204,9 +204,10 @@ async def add_target_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     project_id = context.user_data.get('temp_project_id')
     project_name = context.user_data.get('temp_project_name')
     
-    try:
-        async with aiohttp.ClientSession() as session:
-            if screen_name:
+    # Если есть screen_name — пробуем получить group_id
+    if not group_id and screen_name:
+        try:
+            async with aiohttp.ClientSession() as session:
                 params = {
                     "access_token": token,
                     "v": Config.VK_API_VERSION,
@@ -215,49 +216,23 @@ async def add_target_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 async with session.get("https://api.vk.com/method/utils.resolveScreenName", params=params) as resp:
                     resolve_result = await resp.json()
                 
-                if "error" in resolve_result:
-                    await update.message.reply_text(f"❌ Группа не найдена.\n/cancel — отмена")
-                    return AWAITING_VK_GROUP
-                
-                resolved = resolve_result.get("response", {})
-                if resolved.get("type") != "group":
-                    await update.message.reply_text(f"❌ Это не группа VK.\n/cancel — отмена")
-                    return AWAITING_VK_GROUP
-                
-                group_id = abs(resolved.get("object_id", 0))
-            
-            if not group_id:
-                await update.message.reply_text("❌ Не удалось определить ID группы.\n/cancel — отмена")
-                return AWAITING_VK_GROUP
-            
-            params = {
-                "access_token": token,
-                "v": Config.VK_API_VERSION,
-                "group_id": group_id,
-            }
-            async with session.get("https://api.vk.com/method/groups.getById", params=params) as resp:
-                group_result = await resp.json()
-            
-            if "error" in group_result:
-                await update.message.reply_text(
-                    f"❌ Нет доступа к группе.\n"
-                    "Убедитесь, что вы администратор группы.\n"
-                    "/cancel — отмена"
-                )
-                return AWAITING_VK_GROUP
-            
-            groups = group_result.get("response", {}).get("groups", [])
-            if not groups:
-                await update.message.reply_text("❌ Группа не найдена.\n/cancel — отмена")
-                return AWAITING_VK_GROUP
-            
-            group_info = groups[0]
-            group_name = group_info.get("name", "Без названия")
-            
-    except Exception as e:
-        logger.error(f"VK group check failed: {e}")
-        await update.message.reply_text("❌ Ошибка при проверке группы.\n/cancel — отмена")
+                if "error" not in resolve_result:
+                    resolved = resolve_result.get("response", {})
+                    if resolved.get("type") == "group":
+                        group_id = abs(resolved.get("object_id", 0))
+        except:
+            pass
+    
+    if not group_id:
+        await update.message.reply_text(
+            "❌ Не удалось определить ID группы. Отправьте ссылку с числовым ID:\n"
+            "<code>https://vk.com/club123456</code>\n"
+            "/cancel — отмена",
+            parse_mode="HTML"
+        )
         return AWAITING_VK_GROUP
+    
+    group_name = f"club{group_id}"
     
     async with AsyncSessionLocal() as session:
         target = TargetChannel(
