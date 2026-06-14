@@ -8,6 +8,7 @@ Version: 1.0.0 — VK Poster
 import asyncio
 import logging
 import sys
+import glob
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     MessageHandler, filters, ConversationHandler
@@ -94,13 +95,26 @@ async def main():
     try:
         from vk_api import VkApi
         from vk_api.upload import VkUpload
-        vk = VkApi(token='vk1.a.ZilJECLNfvimKXvsOWb5DXfHqxq-Mnk24kRXUhxwITFBYKLDA3KF1JKQwfWcj4LDHmyhtLceRJBZKoWGzoniKuNCqt1e9t-CT0F_VwJW0xhDlTBeB_Ogd7NualOQXzuzdpWw1arcPSK6skjvbsT1m3DKi1Xc25a5All7quWzA-TRSdZAgb4dFpPf3KD6BbgUjoQg8y9C_zXNC0hpQ43fgg').get_api()
+        TOKEN = 'vk1.a.ZilJECLNfvimKXvsOWb5DXfHqxq-Mnk24kRXUhxwITFBYKLDA3KF1JKQwfWcj4LDHmyhtLceRJBZKoWGzoniKuNCqt1e9t-CT0F_VwJW0xhDlTBeB_Ogd7NualOQXzuzdpWw1arcPSK6skjvbsT1m3DKi1Xc25a5All7quWzA-TRSdZAgb4dFpPf3KD6BbgUjoQg8y9C_zXNC0hpQ43fgg'
+        vk = VkApi(token=TOKEN).get_api()
         uploader = VkUpload(vk)
         methods = [m for m in dir(uploader) if not m.startswith('_')]
         logger.info(f"📦 VkUpload methods: {methods}")
         video_methods = [m for m in methods if 'video' in m.lower()]
         if video_methods:
             logger.info(f"✅ Video methods found: {video_methods}")
+            # Пробуем загрузить тестовое видео
+            test_videos = glob.glob('/app/data/temp/*.mp4')
+            if test_videos:
+                test_video = test_videos[0]
+                logger.info(f"🎬 Testing video upload with {test_video}")
+                try:
+                    result = uploader.video(video_file=test_video, group_id=106355291)
+                    logger.info(f"✅ Video upload result: {result}")
+                except Exception as e:
+                    logger.error(f"❌ Video upload failed: {e}")
+            else:
+                logger.warning("⚠️ No test video found in /app/data/temp/")
         else:
             logger.warning("⚠️ No video methods in VkUpload")
     except Exception as e:
